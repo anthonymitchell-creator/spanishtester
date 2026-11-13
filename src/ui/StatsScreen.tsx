@@ -4,12 +4,15 @@ import type { Level } from '../engine/types';
 import { dayKey } from '../srs/scheduler';
 import { streak, useStore, type Tally } from '../store';
 import { LEVEL_UI, Section } from './common';
+import { useLang, useT } from './i18n';
 
 const pct = (t?: Tally) => (t && t.n ? Math.round((t.ok / t.n) * 100) : null);
 
 export function StatsScreen() {
   const { stats, srs } = useStore();
   const [hover, setHover] = useState<number | null>(null);
+  const t = useT();
+  const lang = useLang();
 
   const days = useMemo(() => {
     const out: { key: string; label: string; n: number; ok: number }[] = [];
@@ -18,7 +21,7 @@ export function StatsScreen() {
       d.setDate(d.getDate() - k);
       const key = dayKey(d.getTime());
       const s = stats.days[key];
-      out.push({ key, label: d.toLocaleDateString(undefined, { weekday: 'narrow' }), n: s?.n ?? 0, ok: s?.ok ?? 0 });
+      out.push({ key, label: d.toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { weekday: 'narrow' }), n: s?.n ?? 0, ok: s?.ok ?? 0 });
     }
     return out;
   }, [stats]);
@@ -39,18 +42,18 @@ export function StatsScreen() {
 
   return (
     <div className="space-y-4 py-4">
-      <h1 className="text-2xl font-bold">Progreso</h1>
+      <h1 className="text-2xl font-bold">{t.progress}</h1>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Tile n={`🔥 ${streak(stats)}`} label="day streak" />
-        <Tile n={total.n} label="reviews" />
-        <Tile n={pct(total) != null ? `${pct(total)}%` : '–'} label="accuracy" />
-        <Tile n={`${learned}`} label={`cards learned · ${mature} mature`} />
+        <Tile n={`🔥 ${streak(stats)}`} label={t.dayStreak} />
+        <Tile n={total.n} label={t.reviews} />
+        <Tile n={pct(total) != null ? `${pct(total)}%` : '–'} label={t.accuracy} />
+        <Tile n={`${learned}`} label={t.cardsLearned(mature)} />
       </div>
 
-      <Section title="Last 14 days: cards reviewed" right={<span className="text-sm text-slate-500">{minutes} min total</span>}>
+      <Section title={t.last14} right={<span className="text-sm text-slate-500">{t.minTotal(minutes)}</span>}>
         <div className="relative">
           <div className="h-5 text-sm text-slate-600 dark:text-slate-300">
-            {h ? `${h.key}: ${h.n} cards${h.n ? `, ${Math.round((h.ok / h.n) * 100)}% correct` : ''}` : 'Tap a bar for details'}
+            {h ? t.barDetail(h.key, h.n, h.n ? Math.round((h.ok / h.n) * 100) : null) : t.tapBar}
           </div>
           <div className="mt-2 flex h-32 items-end gap-[2px] border-b border-slate-200 dark:border-slate-800" onMouseLeave={() => setHover(null)}>
             {days.map((d, k) => (
@@ -75,30 +78,30 @@ export function StatsScreen() {
       </Section>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Section title="Accuracy by tense">
+        <Section title={t.byTense}>
           <table className="w-full text-sm">
             <tbody>
-              {TENSES.filter((t) => stats.byTense[t.id]?.n).map((t) => (
-                <Row key={t.id} label={t.es} t={stats.byTense[t.id]} />
+              {TENSES.filter((x) => stats.byTense[x.id]?.n).map((x) => (
+                <Row key={x.id} label={lang === 'es' ? x.es : x.en} t={stats.byTense[x.id]} />
               ))}
             </tbody>
           </table>
-          {!Object.keys(stats.byTense).length && <p className="text-sm text-slate-500">No reviews yet.</p>}
+          {!Object.keys(stats.byTense).length && <p className="text-sm text-slate-500">{t.noReviews}</p>}
         </Section>
 
-        <Section title="Accuracy by verb type">
+        <Section title={t.byType}>
           <table className="w-full text-sm">
             <tbody>
               {(['regular', 'spelling', 'stem', 'irregular'] as Level[]).filter((l) => stats.byLevel[l]?.n).map((l) => (
-                <Row key={l} label={`${LEVEL_UI[l].dot} ${LEVEL_UI[l].label}`} t={stats.byLevel[l]} />
+                <Row key={l} label={`${LEVEL_UI[l].dot} ${t[({ regular: 'lvRegular', spelling: 'lvSpelling', stem: 'lvStem', irregular: 'lvIrregular' } as const)[l]]}`} t={stats.byLevel[l]} />
               ))}
             </tbody>
           </table>
         </Section>
 
-        <Section title="Trickiest verbs">
+        <Section title={t.trickiest}>
           {weakest.length === 0 ? (
-            <p className="text-sm text-slate-500">Shows up after a few reviews of each verb.</p>
+            <p className="text-sm text-slate-500">{t.trickiestEmpty}</p>
           ) : (
             <table className="w-full text-sm">
               <tbody>{weakest.map(([inf, t]) => <Row key={inf} label={inf} t={t} />)}</tbody>
@@ -106,7 +109,7 @@ export function StatsScreen() {
           )}
         </Section>
 
-        <Section title="Accuracy by person">
+        <Section title={t.byPerson}>
           <table className="w-full text-sm">
             <tbody>
               {['yo', 'tú', 'él/usted', 'nosotros', 'ellos/ustedes'].map((p, i) => stats.byPerson[i]?.n ? <Row key={p} label={p} t={stats.byPerson[i]} /> : null)}

@@ -8,6 +8,7 @@ import { VerbsScreen } from './ui/VerbsScreen';
 import { StatsScreen } from './ui/StatsScreen';
 import { SettingsScreen } from './ui/SettingsScreen';
 import type { VerbCard } from './modes/verbs/cards';
+import { useT } from './ui/i18n';
 
 export type Screen =
   | { name: 'home' }
@@ -17,11 +18,11 @@ export type Screen =
   | { name: 'stats' }
   | { name: 'settings' };
 
-const TABS: { name: Screen['name']; label: string; icon: string }[] = [
-  { name: 'home', label: 'Practicar', icon: '🎯' },
-  { name: 'verbs', label: 'Verbos', icon: '📚' },
-  { name: 'stats', label: 'Progreso', icon: '📈' },
-  { name: 'settings', label: 'Ajustes', icon: '⚙️' },
+const TABS: { name: Screen['name']; label: 'practice' | 'verbs' | 'progress' | 'settings'; icon: string }[] = [
+  { name: 'home', label: 'practice', icon: '🎯' },
+  { name: 'verbs', label: 'verbs', icon: '📚' },
+  { name: 'stats', label: 'progress', icon: '📈' },
+  { name: 'settings', label: 'settings', icon: '⚙️' },
 ];
 
 function useTheme() {
@@ -43,6 +44,7 @@ export default function App() {
   const ready = useStore((s) => s.ready);
   const init = useStore((s) => s.init);
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const t = useT();
   useTheme();
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function App() {
   }, [init]);
 
   if (!ready) {
-    return <div className="flex h-full items-center justify-center text-slate-400">Cargando…</div>;
+    return <div className="flex h-full items-center justify-center text-slate-400">{t.loading}</div>;
   }
 
   if (screen.name === 'session') {
@@ -78,14 +80,14 @@ export default function App() {
       </main>
       <nav className="pb-safe fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
         <div className="mx-auto flex max-w-5xl">
-          {TABS.map((t) => (
+          {TABS.map((tb) => (
             <button
-              key={t.name}
-              onClick={() => setScreen({ name: t.name } as Screen)}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${tab === t.name ? 'text-teal-700 dark:text-teal-400' : 'text-slate-500'}`}
+              key={tb.name}
+              onClick={() => setScreen({ name: tb.name } as Screen)}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${tab === tb.name ? 'text-teal-700 dark:text-teal-400' : 'text-slate-500'}`}
             >
-              <span className="text-xl leading-none">{t.icon}</span>
-              {t.label}
+              <span className="text-xl leading-none">{tb.icon}</span>
+              {t[tb.label]}
             </button>
           ))}
         </div>

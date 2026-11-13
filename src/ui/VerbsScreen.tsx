@@ -7,16 +7,19 @@ import type { PatternTag, VerbEntry } from '../engine/types';
 import { CATEGORIES, CATEGORY_BY_ID, isBundled } from '../data/catalogue';
 import { useStore, type VerbRequest } from '../store';
 import { ChipGroup, FullTable, Legend, LevelBadge, Section, SpeakButton, TenseTable } from './common';
+import { useLang, useT } from './i18n';
+import { TENSE_BY_ID } from '../engine/tenses';
 
 export function VerbsScreen() {
   const [tab, setTab] = useState<'list' | 'requests'>('list');
   const requests = useStore((s) => s.requests);
+  const t = useT();
   return (
     <div className="space-y-4 py-4">
       <div className="flex gap-2">
-        <button className={tab === 'list' ? 'chip-on' : 'chip-off'} onClick={() => setTab('list')}>📚 Catálogo</button>
+        <button className={tab === 'list' ? 'chip-on' : 'chip-off'} onClick={() => setTab('list')}>📚 {t.catalogue}</button>
         <button className={tab === 'requests' ? 'chip-on' : 'chip-off'} onClick={() => setTab('requests')}>
-          📮 Pedidos {requests.length > 0 && <span className="ml-1 rounded-full bg-rose-600 px-1.5 text-xs text-white">{requests.length}</span>}
+          📮 {t.requests} {requests.length > 0 && <span className="ml-1 rounded-full bg-rose-600 px-1.5 text-xs text-white">{requests.length}</span>}
         </button>
       </div>
       {tab === 'list' ? <Catalogue /> : <Requests />}
@@ -30,6 +33,8 @@ function Catalogue() {
   const [cat, setCat] = useState<string[]>([]);
   const [open, setOpen] = useState<VerbEntry | null>(null);
   const [adding, setAdding] = useState(false);
+  const t = useT();
+  const lang = useLang();
 
   const list = useMemo(() => {
     const nq = fold(q.trim().toLowerCase());
@@ -46,26 +51,26 @@ function Catalogue() {
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <input className="input" placeholder="Search Spanish or English…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input" placeholder={t.searchPh} value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="btn-primary shrink-0" onClick={() => setAdding(true)}>＋</button>
       </div>
       <div className="-mx-4 overflow-x-auto px-4">
         <div className="flex w-max gap-2 pb-1">
           {CATEGORIES.map((c) => (
             <button key={c.id} className={cat.includes(c.id) ? 'chip-on' : 'chip-off'} onClick={() => setCat(cat.includes(c.id) ? cat.filter((x) => x !== c.id) : [...cat, c.id])}>
-              {c.icon} {c.es}
+              {c.icon} {lang === 'es' ? c.es : c.en}
             </button>
           ))}
         </div>
       </div>
-      <div className="text-sm text-slate-500">{list.length} verbs</div>
+      <div className="text-sm text-slate-500">{t.nVerbs(list.length)}</div>
       <ul className="card divide-y divide-slate-200 !p-0 dark:divide-slate-800">
         {list.map((v) => (
           <li key={v.inf}>
             <button className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left" onClick={() => setOpen(v)}>
               <span className="min-w-0">
                 <span className="font-medium">{v.inf}</span>
-                {v.unverified && <span className="ml-1 text-xs text-amber-600">⚠ unverified</span>}
+                {v.unverified && <span className="ml-1 text-xs text-amber-600">{t.unverified}</span>}
                 <span className="block truncate text-sm text-slate-500">{v.en.join(', ')}</span>
               </span>
               <LevelBadge level={verbLevel(v)} small />
@@ -79,7 +84,9 @@ function Catalogue() {
 
 function VerbDetail({ verb, onClose }: { verb: VerbEntry; onClose(): void }) {
   const removeCustomVerb = useStore((s) => s.removeCustomVerb);
-  const t = analyze(verb).table;
+  const tb = analyze(verb).table;
+  const t = useT();
+  const lang = useLang();
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -94,14 +101,14 @@ function VerbDetail({ verb, onClose }: { verb: VerbEntry; onClose(): void }) {
         <LevelBadge level={verbLevel(verb)} />
       </div>
       <div className="flex flex-wrap gap-2 text-sm">
-        {verb.cat.map((c) => <span key={c} className="chip-off">{CATEGORY_BY_ID[c]?.icon} {CATEGORY_BY_ID[c]?.es ?? c}</span>)}
-        <span className="chip-off">gerundio: {t.ger}</span>
-        <span className="chip-off">participio: {t.part}</span>
+        {verb.cat.map((c) => <span key={c} className="chip-off">{CATEGORY_BY_ID[c]?.icon} {(lang === 'es' ? CATEGORY_BY_ID[c]?.es : CATEGORY_BY_ID[c]?.en) ?? c}</span>)}
+        <span className="chip-off">{t.gerund}: {tb.ger}</span>
+        <span className="chip-off">{t.participle}: {tb.part}</span>
       </div>
       {verb.note && <div className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-200">💡 {verb.note}</div>}
       {verb.unverified && (
         <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-          Added on this device and not yet verified. It's included when you copy your requests, so it can be checked in a Claude Code session.
+          {t.unverifiedNote}
         </div>
       )}
       <Legend />
@@ -109,8 +116,8 @@ function VerbDetail({ verb, onClose }: { verb: VerbEntry; onClose(): void }) {
         <FullTable verb={verb} tenses={['pres', 'pret', 'impf', 'fut', 'cond', 'perf', 'plup', 'subj', 'impsubj', 'imp', 'impneg']} />
       </div>
       {!isBundled(verb.inf) && (
-        <button className="btn-ghost w-full text-rose-600" onClick={() => { if (confirm(`Remove ${verb.inf}?`)) { removeCustomVerb(verb.inf); onClose(); } }}>
-          Remove this verb
+        <button className="btn-ghost w-full text-rose-600" onClick={() => { if (confirm(t.removeConfirm(verb.inf))) { removeCustomVerb(verb.inf); onClose(); } }}>
+          {t.removeVerb}
         </button>
       )}
     </div>
@@ -127,6 +134,8 @@ const STEM_OPTIONS: { value: PatternTag | 'none'; label: string }[] = [
 
 function AddVerb({ onClose }: { onClose(): void }) {
   const { addCustomVerb, verbs } = useStore();
+  const t = useT();
+  const lang = useLang();
   const [inf, setInf] = useState('');
   const [en, setEn] = useState('');
   const [cats, setCats] = useState<string[]>([]);
@@ -158,31 +167,31 @@ function AddVerb({ onClose }: { onClose(): void }) {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <button className="btn-ghost !px-3 !py-2" onClick={onClose}>←</button>
-        <h1 className="text-2xl font-bold">Add a verb</h1>
+        <h1 className="text-2xl font-bold">{t.addVerbTitle}</h1>
       </div>
       <p className="text-sm text-slate-500">
-        Quick add on the phone. It's marked <em>unverified</em> until it's checked in a Claude Code session. To ask for a verb you don't know yet, use <b>Pedidos</b> instead.
+        {t.addIntro}
       </p>
-      <Section title="Verb">
-        <input className="input" placeholder="infinitive, e.g. deambular" value={inf} onChange={(e) => setInf(e.target.value)} autoCapitalize="none" lang="es" />
-        <input className="input" placeholder="English, e.g. to wander, to roam" value={en} onChange={(e) => setEn(e.target.value)} />
-        {exists && <p className="text-sm text-amber-600">That verb is already in your catalogue.</p>}
+      <Section title={t.verb}>
+        <input className="input" placeholder={t.infPh} value={inf} onChange={(e) => setInf(e.target.value)} autoCapitalize="none" lang="es" />
+        <input className="input" placeholder={t.enPh} value={en} onChange={(e) => setEn(e.target.value)} />
+        {exists && <p className="text-sm text-amber-600">{t.alreadyExists}</p>}
       </Section>
-      <Section title="Pattern (if you know it)">
-        <div className="label">Stem change</div>
-        <ChipGroup multi={false} value={[stem]} onChange={([v]) => setStem(v)} options={STEM_OPTIONS} />
-        <label className="flex items-center gap-2"><input type="checkbox" checked={useZc} onChange={(e) => setZc(e.target.checked)} /> yo form in -zco (conozco)</label>
-        <label className="flex items-center gap-2"><input type="checkbox" checked={accent} onChange={(e) => setAccent(e.target.checked)} /> stressed í/ú (envío, continúo)</label>
-        {base && <p className="text-sm text-slate-500">Conjugated like <b>{base}</b>.</p>}
+      <Section title={t.patternTitle}>
+        <div className="label">{t.stemChange}</div>
+        <ChipGroup multi={false} value={[stem]} onChange={([v]) => setStem(v)} options={STEM_OPTIONS.map((o) => (o.value === 'none' ? { ...o, label: t.none } : o))} />
+        <label className="flex items-center gap-2"><input type="checkbox" checked={useZc} onChange={(e) => setZc(e.target.checked)} /> {t.zcLabel}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={accent} onChange={(e) => setAccent(e.target.checked)} /> {t.accentLabel}</label>
+        {base && <p className="text-sm text-slate-500">{t.conjugatedLike} <b>{base}</b>.</p>}
       </Section>
-      <Section title="Categories">
-        <ChipGroup value={cats} onChange={setCats} options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.icon} ${c.es}` }))} />
+      <Section title={t.categories}>
+        <ChipGroup value={cats} onChange={setCats} options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.icon} ${lang === 'es' ? c.es : c.en}` }))} />
       </Section>
       {entry && (
-        <Section title="Preview">
+        <Section title={t.preview}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div><div className="mb-1 text-sm font-medium">Presente</div><TenseTable verb={entry} tense="pres" /></div>
-            <div><div className="mb-1 text-sm font-medium">Pretérito</div><TenseTable verb={entry} tense="pret" /></div>
+            <div><div className="mb-1 text-sm font-medium">{lang === 'es' ? TENSE_BY_ID.pres.es : TENSE_BY_ID.pres.en}</div><TenseTable verb={entry} tense="pres" /></div>
+            <div><div className="mb-1 text-sm font-medium">{lang === 'es' ? TENSE_BY_ID.pret.es : TENSE_BY_ID.pret.en}</div><TenseTable verb={entry} tense="pret" /></div>
           </div>
         </Section>
       )}
@@ -191,7 +200,7 @@ function AddVerb({ onClose }: { onClose(): void }) {
         disabled={!entry || !entry.en.length || exists}
         onClick={() => { if (entry) { addCustomVerb({ ...entry, cat: entry.cat.length ? entry.cat : ['basics'] }); onClose(); } }}
       >
-        Add to my verbs
+        {t.addToMyVerbs}
       </button>
     </div>
   );
@@ -216,6 +225,7 @@ function Requests() {
   const [kind, setKind] = useState<VerbRequest['kind']>('verb');
   const [text, setText] = useState('');
   const [copied, setCopied] = useState(false);
+  const t = useT();
   const unverified = customVerbs.filter((v) => v.unverified);
   const body = requestsText(requests, customVerbs);
   const hasAny = requests.length > 0 || unverified.length > 0;
@@ -235,26 +245,26 @@ function Requests() {
 
   return (
     <div className="space-y-4">
-      <Section title="New request">
+      <Section title={t.newRequest}>
         <ChipGroup
           multi={false}
           value={[kind]}
           onChange={([v]) => setKind(v)}
-          options={[{ value: 'verb', label: '🔤 A verb (in English)' }, { value: 'category', label: '🗂️ A category' }]}
+          options={[{ value: 'verb', label: t.reqVerb }, { value: 'category', label: t.reqCategory }]}
         />
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); addRequest(kind, text); setText(''); setCopied(false); }}>
           <input
             className="input"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={kind === 'verb' ? 'e.g. to wander' : 'e.g. verbs for cooking'}
+            placeholder={kind === 'verb' ? t.reqVerbPh : t.reqCatPh}
           />
-          <button className="btn-primary shrink-0" disabled={!text.trim()}>Add</button>
+          <button className="btn-primary shrink-0" disabled={!text.trim()}>{t.add}</button>
         </form>
       </Section>
 
-      <Section title={`Queue (${requests.length})`} right={requests.length > 0 && <button className="text-sm text-rose-600" onClick={() => confirm('Clear all requests?') && clearRequests()}>Clear</button>}>
-        {requests.length === 0 && <p className="text-sm text-slate-500">Nothing queued. Add requests as you think of them.</p>}
+      <Section title={t.queue(requests.length)} right={requests.length > 0 && <button className="text-sm text-rose-600" onClick={() => confirm(t.clearConfirm) && clearRequests()}>{t.clear}</button>}>
+        {requests.length === 0 && <p className="text-sm text-slate-500">{t.emptyQueue}</p>}
         <ul className="divide-y divide-slate-200 dark:divide-slate-800">
           {requests.map((r) => (
             <li key={r.id} className="flex items-center justify-between py-2">
@@ -264,16 +274,16 @@ function Requests() {
           ))}
         </ul>
         {unverified.length > 0 && (
-          <p className="text-sm text-amber-700 dark:text-amber-400">+ {unverified.length} verb(s) added on this device will be included for verification.</p>
+          <p className="text-sm text-amber-700 dark:text-amber-400">{t.plusUnverified(unverified.length)}</p>
         )}
       </Section>
 
       {hasAny && (
-        <Section title="Send to Claude">
+        <Section title={t.sendToClaude}>
           <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-800">{body}</pre>
-          <button className="btn-primary w-full" onClick={copy}>{copied ? '✓ Copied / shared' : '📋 Copy or share requests'}</button>
+          <button className="btn-primary w-full" onClick={copy}>{copied ? t.copied : t.copyShare}</button>
           <p className="text-sm text-slate-500">
-            Paste this into a Claude Code session in the <code>Spanish Tool</code> project. Claude confirms each verb, adds it, runs the checks and redeploys. New verbs arrive the next time you open the app. Clear the queue once they've been handled.
+            {t.sendHint}
           </p>
         </Section>
       )}

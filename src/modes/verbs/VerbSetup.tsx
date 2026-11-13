@@ -5,20 +5,24 @@ import { PERSON_ES } from '../../engine/tenses';
 import type { Person } from '../../engine/types';
 import { newCardsToday, useStore, type Direction } from '../../store';
 import { ChipGroup, Section } from '../../ui/common';
+import { useLang, useT } from '../../ui/i18n';
 import { TenseChips, WarningSettings } from '../../ui/PracticeOptions';
 import { buildSession, filterVerbs, queueInfo } from './cards';
 
-export const DIRECTIONS: { value: Direction; label: string; hint: string }[] = [
-  { value: 'en-es', label: 'EN → ES', hint: '“we will eat” → comeremos' },
-  { value: 'es-en', label: 'ES → EN', hint: 'hablaron → “they spoke”' },
-  { value: 'inf', label: 'Infinitivos', hint: 'to remember ↔ recordar' },
-  { value: 'recog', label: 'Reconocer', hint: 'fuimos → ir · pretérito · nosotros' },
-];
-
 export function VerbSetup({ go }: { go: (s: Screen) => void }) {
   const { settings: s, updateSettings, verbs, srs, stats } = useStore();
+  const t = useT();
+  const lang = useLang();
   const pool = useMemo(() => filterVerbs(verbs, s), [verbs, s]);
   const info = useMemo(() => queueInfo(verbs, s, srs), [verbs, s, srs]);
+  const freshToday = Math.min(info.fresh, Math.max(0, s.newPerDay - newCardsToday(stats)));
+
+  const directions: { value: Direction; label: string; hint: string }[] = [
+    { value: 'en-es', label: 'EN → ES', hint: '“we will eat” → comeremos' },
+    { value: 'es-en', label: 'ES → EN', hint: 'hablaron → “they spoke”' },
+    { value: 'inf', label: t.dirInf, hint: 'to remember ↔ recordar' },
+    { value: 'recog', label: t.dirRecog, hint: 'fuimos → ir · pretérito · nosotros' },
+  ];
 
   const start = (mode: 'normal' | 'extra') => {
     const cards = buildSession(verbs, s, srs, newCardsToday(stats), mode);
@@ -29,18 +33,18 @@ export function VerbSetup({ go }: { go: (s: Screen) => void }) {
     <div className="space-y-4 py-4">
       <header className="flex items-center gap-3">
         <button className="btn-ghost !px-3 !py-2" onClick={() => go({ name: 'home' })}>←</button>
-        <h1 className="text-2xl font-bold">Verbos: ajustes</h1>
+        <h1 className="text-2xl font-bold">{t.setupTitle}</h1>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-4">
-          <Section title="Tenses">
+          <Section title={t.tenses}>
             <TenseChips />
           </Section>
 
-          <Section title="Card types">
+          <Section title={t.cardTypes}>
             <div className="space-y-2">
-              {DIRECTIONS.map((d) => {
+              {directions.map((d) => {
                 const on = s.directions.includes(d.value);
                 return (
                   <button
@@ -59,68 +63,68 @@ export function VerbSetup({ go }: { go: (s: Screen) => void }) {
             </div>
           </Section>
 
-          <Section title="Answer style">
+          <Section title={t.answerStyle}>
             <ChipGroup
               multi={false}
               value={[s.answerStyle]}
               onChange={([v]) => updateSettings({ answerStyle: v })}
               options={[
-                { value: 'typed', label: '⌨️ Type' },
-                { value: 'flip', label: '🔄 Flip & self-grade' },
-                { value: 'choice', label: '🔘 Multiple choice' },
+                { value: 'typed', label: t.styleTyped },
+                { value: 'flip', label: t.styleFlip },
+                { value: 'choice', label: t.styleChoice },
               ]}
             />
-            <p className="text-sm text-slate-500">Recognition cards are always multiple choice.</p>
+            <p className="text-sm text-slate-500">{t.recogAlwaysChoice}</p>
           </Section>
         </div>
 
         <div className="space-y-4">
-          <Section title="Persons">
+          <Section title={t.persons}>
             <ChipGroup
               value={s.persons}
               onChange={(v) => v.length && updateSettings({ persons: (v as Person[]).sort() })}
               options={PERSON_ES.map((p, i) => ({ value: i as Person, label: p }))}
             />
-            <p className="text-sm text-slate-500">LatAm Spanish: ustedes replaces vosotros.</p>
+            <p className="text-sm text-slate-500">{t.ustedesNote}</p>
           </Section>
 
-          <Section title={`Verbs (${pool.length})`}>
+          <Section title={t.verbsCount(pool.length)}>
             <ChipGroup
               multi={false}
               value={[s.verbFilter]}
               onChange={([v]) => updateSettings({ verbFilter: v })}
               options={[
-                { value: 'all', label: 'All' },
-                { value: 'irregular', label: 'Irregular & stem-changing' },
-                { value: 'regular', label: 'Regular' },
-                { value: 'reflexive', label: 'Reflexive' },
-                { value: 'recent', label: 'Recently added' },
+                { value: 'all', label: t.fAll },
+                { value: 'irregular', label: t.fIrregular },
+                { value: 'regular', label: t.fRegular },
+                { value: 'reflexive', label: t.fReflexive },
+                { value: 'recent', label: t.fRecent },
               ]}
             />
-            <div className="label pt-2">Categories {s.categories.length === 0 && '(all)'}</div>
+            <div className="label pt-2">{t.categories} {s.categories.length === 0 && t.allParen}</div>
             <ChipGroup
               value={s.categories}
               onChange={(v) => updateSettings({ categories: v })}
-              options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.icon} ${c.es}` }))}
+              options={CATEGORIES.map((c) => ({ value: c.id, label: `${c.icon} ${lang === 'es' ? c.es : c.en}` }))}
             />
           </Section>
 
-          <Section title="Irregular warnings">
+          <Section title={t.irregularWarnings}>
             <WarningSettings />
           </Section>
 
-          <Section title="Session">
-            <NumberRow label="Cards per session" value={s.sessionLength} min={5} max={100} step={5} onChange={(n) => updateSettings({ sessionLength: n })} />
-            <NumberRow label="New cards per day" value={s.newPerDay} min={0} max={100} step={5} onChange={(n) => updateSettings({ newPerDay: n })} />
+          <Section title={t.session}>
+            <NumberRow label={t.cardsPerSession} value={s.sessionLength} min={5} max={100} step={5} onChange={(n) => updateSettings({ sessionLength: n })} />
+            <NumberRow label={t.newPerDay} value={s.newPerDay} min={0} max={100} step={5} onChange={(n) => updateSettings({ newPerDay: n })} />
           </Section>
         </div>
       </div>
 
       <div className="pb-safe sticky bottom-20 flex gap-2 rounded-2xl bg-slate-50/90 py-2 backdrop-blur dark:bg-slate-950/90">
-        <button className="btn-primary flex-1 text-lg" onClick={() => start('normal')} disabled={info.due + Math.min(info.fresh, s.newPerDay) === 0}>
-          Empezar · {info.due} due · {Math.min(info.fresh, Math.max(0, s.newPerDay - newCardsToday(stats)))} new
+        <button className="btn-primary flex-1 text-lg" onClick={() => start('normal')} disabled={info.due + freshToday === 0}>
+          {t.startCounts(info.due, freshToday)}
         </button>
-        <button className="btn-ghost" onClick={() => start('extra')} disabled={info.total === 0}>Libre</button>
+        <button className="btn-ghost" onClick={() => start('extra')} disabled={info.total === 0} title={t.freeHint}>{t.free}</button>
       </div>
     </div>
   );

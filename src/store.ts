@@ -27,6 +27,8 @@ export interface Settings {
   speechRate: number;
   haptics: boolean;
   theme: 'system' | 'light' | 'dark';
+  /** Interface language for menus and labels. */
+  uiLang: 'en' | 'es';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   speechRate: 0.9,
   haptics: true,
   theme: 'system',
+  uiLang: 'en',
 };
 
 export interface Tally { n: number; ok: number }

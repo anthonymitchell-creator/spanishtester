@@ -6,6 +6,7 @@ import type { Grade } from '../../srs/scheduler';
 import { AccentBar, LEVEL_UI, LevelBadge, SpeakButton, TenseTable } from '../../ui/common';
 import { buzz } from '../../ui/haptics';
 import { speak } from '../../ui/speech';
+import { useT } from '../../ui/i18n';
 import {
   acceptedAnswers, answerLang, buildSession, cardLevel, check, choicesFor, displayAnswer, promptOf, showWarning, spanishForm,
   type Choice, type VerbCard,
@@ -28,6 +29,7 @@ interface Props {
 
 export function VerbSession({ cards, review, onExit, onRestart }: Props) {
   const { settings, verbs, record } = useStore();
+  const t = useT();
   const [queue, setQueue] = useState<VerbCard[]>(cards);
   const [i, setI] = useState(0);
   const [results, setResults] = useState<Result[]>([]);
@@ -109,7 +111,7 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
   return (
     <div className="pt-safe flex h-full flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3">
-        <button className="btn-ghost !px-3 !py-2" onClick={() => (results.length === 0 || confirm('End this session?')) && setI(queue.length)} aria-label="End session">✕</button>
+        <button className="btn-ghost !px-3 !py-2" onClick={() => (results.length === 0 || confirm(t.endConfirm)) && setI(queue.length)} aria-label={t.endSession}>✕</button>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
           <div className="h-full bg-teal-600 transition-all" style={{ width: `${progress}%` }} />
         </div>
@@ -121,8 +123,8 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
         <div className="space-y-4">
           <div className="card space-y-4 py-6 text-center">
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-              {card.isNew && !review && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300">NUEVO</span>}
-              {review && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300">REPASO</span>}
+              {card.isNew && !review && <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300">{t.badgeNew}</span>}
+              {review && <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300">{t.badgeReview}</span>}
               {prompt.tenseLabel && (
                 <span className="rounded-full bg-slate-100 px-3 py-1 font-medium dark:bg-slate-800">
                   {prompt.tenseLabel}
@@ -137,8 +139,8 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
               {prompt.mainLang === 'es' && <SpeakButton text={prompt.main} />}
             </div>
             {prompt.sub && <div className="text-slate-500 dark:text-slate-400">{prompt.sub}</div>}
-            {card.dir === 'recog' && <div className="text-sm text-slate-500">Which verb, tense and person?</div>}
-            {card.verb.unverified && <div className="text-xs text-amber-600">⚠ Added on this device. Not yet verified.</div>}
+            {card.dir === 'recog' && <div className="text-sm text-slate-500">{t.whichAnalysis}</div>}
+            {card.verb.unverified && <div className="text-xs text-amber-600">{t.unverifiedCard}</div>}
           </div>
 
           {/* Answer area */}
@@ -153,7 +155,7 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
                 value={value}
                 readOnly={!!pending}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder={lang === 'es' ? 'Escribe en español…' : 'Type in English…'}
+                placeholder={lang === 'es' ? t.typeSpanish : t.typeEnglish}
                 lang={lang === 'es' ? 'es' : 'en'}
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -164,14 +166,14 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
               {lang === 'es' && !pending && <AccentBar inputRef={inputRef} onInsert={setValue} />}
               {!pending ? (
                 <div className="flex gap-2">
-                  <button type="submit" className="btn-primary flex-1" disabled={!value.trim()}>Check</button>
-                  <button type="button" className="btn-ghost" onClick={() => setPending({ card, verdict: 'wrong', pass: false, given: '' })}>Don't know</button>
+                  <button type="submit" className="btn-primary flex-1" disabled={!value.trim()}>{t.check}</button>
+                  <button type="button" className="btn-ghost" onClick={() => setPending({ card, verdict: 'wrong', pass: false, given: '' })}>{t.dontKnow}</button>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <button type="submit" className="btn-primary flex-1">Continue →</button>
+                  <button type="submit" className="btn-primary flex-1">{t.continue}</button>
                   {!pending.pass && pending.given && (
-                    <button type="button" className="btn-ghost" onClick={() => continueAfter(true)} title="Count this answer as correct">I was right</button>
+                    <button type="button" className="btn-ghost" onClick={() => continueAfter(true)} title={t.iWasRightHint}>{t.iWasRight}</button>
                   )}
                 </div>
               )}
@@ -180,10 +182,10 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
 
           {style === 'flip' && (
             !revealed ? (
-              <button className="btn-primary w-full text-lg" onClick={() => setRevealed(true)}>Show answer</button>
+              <button className="btn-primary w-full text-lg" onClick={() => setRevealed(true)}>{t.showAnswer}</button>
             ) : (
               <div className="grid grid-cols-4 gap-2">
-                {([['Again', 0, 'bg-rose-600'], ['Hard', 1, 'bg-amber-600'], ['Good', 2, 'bg-teal-700'], ['Easy', 3, 'bg-sky-700']] as const).map(([label, g, cls], k) => (
+                {([[t.gAgain, 0, 'bg-rose-600'], [t.gHard, 1, 'bg-amber-600'], [t.gGood, 2, 'bg-teal-700'], [t.gEasy, 3, 'bg-sky-700']] as const).map(([label, g, cls], k) => (
                   <button
                     key={label}
                     ref={k === 2 ? continueRef : undefined}
@@ -208,7 +210,7 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
                   </button>
                 );
               })}
-              {pending && <button ref={continueRef} className="btn-primary w-full" onClick={() => continueAfter()}>Continue →</button>}
+              {pending && <button ref={continueRef} className="btn-primary w-full" onClick={() => continueAfter()}>{t.continue}</button>}
             </div>
           )}
         </div>
@@ -221,6 +223,7 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
 }
 
 function Feedback({ card, pending, showDetailAlways, verbs }: { card: VerbCard; pending: Omit<Result, 'grade'> | null; showDetailAlways: boolean; verbs: ReturnType<typeof useStore.getState>['verbs'] }) {
+  const t = useT();
   const isConj = card.dir !== 'inf';
   const ex = isConj ? explain(card.verb, card.tense, card.person) : null;
   const wrong = pending && !pending.pass;
@@ -228,16 +231,16 @@ function Feedback({ card, pending, showDetailAlways, verbs }: { card: VerbCard; 
   const banner = !pending
     ? null
     : pending.verdict === 'correct'
-      ? { cls: 'bg-emerald-600', text: '¡Correcto!' }
+      ? { cls: 'bg-emerald-600', text: t.correct }
       : pending.verdict === 'accent'
-        ? { cls: 'bg-amber-600', text: pending.pass ? 'Almost: check the accent' : 'Accent missing (strict mode)' }
-        : { cls: 'bg-rose-600', text: pending.given ? 'Not quite' : 'Answer' };
+        ? { cls: 'bg-amber-600', text: pending.pass ? t.almostAccent : t.accentStrict }
+        : { cls: 'bg-rose-600', text: pending.given ? t.notQuite : t.answer };
 
   return (
     <div className="card space-y-4">
       {banner && <div className={`rounded-xl px-4 py-2 font-semibold text-white ${banner.cls}`}>{banner.text}</div>}
       <div>
-        <div className="label">Answer</div>
+        <div className="label">{t.answer}</div>
         <div className="flex items-center gap-1">
           <div className="text-2xl font-semibold" lang={answerLang(card) === 'es' ? 'es' : 'en'}>
             {card.dir === 'recog' ? `${card.verb.inf}` : displayAnswer(card)}
@@ -246,8 +249,8 @@ function Feedback({ card, pending, showDetailAlways, verbs }: { card: VerbCard; 
         </div>
         {card.dir !== 'es-en' && card.dir !== 'inf' && <div className="text-slate-500">{card.verb.inf}: {card.verb.en.join(', ')}</div>}
         {card.dir === 'es-en' && <div className="text-slate-500">{card.verb.inf}: {card.verb.en.join(', ')}</div>}
-        {alts.length > 0 && <div className="text-sm text-slate-500">Also accepted: {alts.join(', ')}</div>}
-        {pending?.given && !pending.pass && <div className="mt-1 text-sm text-rose-600 dark:text-rose-400">You wrote: {pending.given}</div>}
+        {alts.length > 0 && <div className="text-sm text-slate-500">{t.alsoAccepted} {alts.join(', ')}</div>}
+        {pending?.given && !pending.pass && <div className="mt-1 text-sm text-rose-600 dark:text-rose-400">{t.youWrote} {pending.given}</div>}
       </div>
 
       {card.verb.note && <div className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900 dark:bg-sky-950/40 dark:text-sky-200">💡 {card.verb.note}</div>}
@@ -257,7 +260,7 @@ function Feedback({ card, pending, showDetailAlways, verbs }: { card: VerbCard; 
           <LevelBadge level={ex.level} />
           {ex.regular && ex.regular !== spanishForm(card) && (
             <div className="text-sm">
-              Regular pattern would give <span className="line-through opacity-70">{ex.regular}</span> → <span className={LEVEL_UI[ex.level].text}>{spanishForm(card)}</span>
+              {t.regularWouldGive} <span className="line-through opacity-70">{ex.regular}</span> → <span className={LEVEL_UI[ex.level].text}>{spanishForm(card)}</span>
             </div>
           )}
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-300">
@@ -278,6 +281,7 @@ function Feedback({ card, pending, showDetailAlways, verbs }: { card: VerbCard; 
 
 function Summary({ results, review, onExit, onRestart }: { results: Result[]; review?: boolean; onExit(): void; onRestart(c: VerbCard[], review?: boolean): void }) {
   const { settings, verbs, srs, stats } = useStore();
+  const t = useT();
   const first = new Map<string, Result>();
   for (const r of results) if (!first.has(r.card.srsId)) first.set(r.card.srsId, r);
   const firsts = [...first.values()];
@@ -296,12 +300,12 @@ function Summary({ results, review, onExit, onRestart }: { results: Result[]; re
     <div className="pt-safe mx-auto max-w-2xl space-y-4 px-4 py-6">
       <div className="card space-y-2 text-center">
         <div className="text-5xl">{pct >= 90 ? '🎉' : pct >= 70 ? '💪' : '📚'}</div>
-        <h1 className="text-2xl font-bold">{review ? 'Repaso terminado' : '¡Sesión terminada!'}</h1>
-        <p className="text-slate-500">{ok} / {firsts.length} correct on the first try ({pct}%)</p>
+        <h1 className="text-2xl font-bold">{review ? t.reviewDone : t.sessionDone}</h1>
+        <p className="text-slate-500">{t.firstTry(ok, firsts.length, pct)}</p>
       </div>
       {missed.length > 0 && (
         <div className="card space-y-2">
-          <div className="label">To review</div>
+          <div className="label">{t.toReview}</div>
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {missed.map((r) => (
               <li key={r.card.key} className="flex items-center justify-between gap-2 py-2">
@@ -313,12 +317,12 @@ function Summary({ results, review, onExit, onRestart }: { results: Result[]; re
               </li>
             ))}
           </ul>
-          <button className="btn-primary w-full" onClick={drill}>Drill these again ({missed.length})</button>
+          <button className="btn-primary w-full" onClick={drill}>{t.drillAgain(missed.length)}</button>
         </div>
       )}
       <div className="flex gap-2">
-        <button className="btn-ghost flex-1" onClick={onExit}>Done</button>
-        <button className="btn-ghost flex-1" onClick={more}>Keep going</button>
+        <button className="btn-ghost flex-1" onClick={onExit}>{t.done}</button>
+        <button className="btn-ghost flex-1" onClick={more}>{t.keepGoing}</button>
       </div>
     </div>
   );

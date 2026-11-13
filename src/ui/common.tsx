@@ -5,6 +5,13 @@ import { PERSON_ES_SHORT, TENSES, TENSE_BY_ID } from '../engine/tenses';
 import type { Level, Person, TenseId, VerbEntry } from '../engine/types';
 import { useStore } from '../store';
 import { canSpeak, speak } from './speech';
+import { useLang, useT, type Dict } from './i18n';
+
+const LEVEL_KEY: Record<Level, keyof Dict> = { regular: 'lvRegular', spelling: 'lvSpelling', stem: 'lvStem', irregular: 'lvIrregular' };
+function useLevelLabel() {
+  const t = useT();
+  return (l: Level) => t[LEVEL_KEY[l]] as string;
+}
 
 export const LEVEL_UI: Record<Level, { label: string; dot: string; cls: string; text: string }> = {
   regular: { label: 'Regular', dot: '🟢', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300', text: '' },
@@ -15,9 +22,10 @@ export const LEVEL_UI: Record<Level, { label: string; dot: string; cls: string; 
 
 export function LevelBadge({ level, small }: { level: Level; small?: boolean }) {
   const u = LEVEL_UI[level];
+  const label = useLevelLabel();
   return (
     <span className={`inline-flex items-center gap-1 rounded-full font-medium ${u.cls} ${small ? 'px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-xs'}`}>
-      {u.dot} {u.label}
+      {u.dot} {label(level)}
     </span>
   );
 }
@@ -165,16 +173,17 @@ export function TenseTable({ verb, tense, highlight }: { verb: VerbEntry; tense:
 }
 
 export function FullTable({ verb, tenses }: { verb: VerbEntry; tenses?: TenseId[] }) {
+  const es = useLang() === 'es';
   const list = TENSES.filter((t) => !tenses || tenses.includes(t.id));
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {list.map((t) => (
-        <div key={t.id}>
+      {list.map((x) => (
+        <div key={x.id}>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="font-medium">{t.es}</span>
-            <span className="text-xs text-slate-500">{t.en}</span>
+            <span className="font-medium">{es ? x.es : x.en}</span>
+            <span className="text-xs text-slate-500">{es ? x.en : x.es}</span>
           </div>
-          <TenseTable verb={verb} tense={t.id} />
+          <TenseTable verb={verb} tense={x.id} />
         </div>
       ))}
     </div>
@@ -182,10 +191,11 @@ export function FullTable({ verb, tenses }: { verb: VerbEntry; tenses?: TenseId[
 }
 
 export function Legend() {
+  const label = useLevelLabel();
   return (
     <div className="flex flex-wrap gap-2 text-xs">
       {(['spelling', 'stem', 'irregular'] as Level[]).map((l) => (
-        <span key={l} className={LEVEL_UI[l].text}>{LEVEL_UI[l].dot} {LEVEL_UI[l].label}</span>
+        <span key={l} className={LEVEL_UI[l].text}>{LEVEL_UI[l].dot} {label(l)}</span>
       ))}
     </div>
   );
