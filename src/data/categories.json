@@ -1,0 +1,15 @@
+[
+  { "id": "basics", "es": "Esenciales", "en": "Essentials", "icon": "⭐" },
+  { "id": "routine", "es": "Rutina diaria", "en": "Daily routine", "icon": "☀️" },
+  { "id": "food", "es": "Comida y cocina", "en": "Food & kitchen", "icon": "🍳" },
+  { "id": "home", "es": "La casa", "en": "Home & chores", "icon": "🏠" },
+  { "id": "travel", "es": "Viajes y transporte", "en": "Travel & getting around", "icon": "✈️" },
+  { "id": "communication", "es": "Comunicación", "en": "Communication", "icon": "💬" },
+  { "id": "emotions", "es": "Emociones y mente", "en": "Feelings & mind", "icon": "💭" },
+  { "id": "work", "es": "Trabajo y estudio", "en": "Work & study", "icon": "💼" },
+  { "id": "health", "es": "Cuerpo y salud", "en": "Body & health", "icon": "🩺" },
+  { "id": "social", "es": "Vida social", "en": "Social life", "icon": "🎉" },
+  { "id": "money", "es": "Compras y dinero", "en": "Shopping & money", "icon": "💵" },
+  { "id": "nature", "es": "Naturaleza y clima", "en": "Nature & weather", "icon": "🌦️" },
+  { "id": "leisure", "es": "Tiempo libre", "en": "Free time", "icon": "⚽" }
+]

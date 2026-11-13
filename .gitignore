@@ -1,0 +1,7 @@
+node_modules
+dist
+dev-dist
+*.local
+# Raw reference CSV (CC BY-NC-SA); the compact fixture in tests/fixtures is kept for CI
+reference-data/
+*.tsbuildinfo
