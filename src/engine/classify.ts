@@ -141,6 +141,8 @@ export function explain(v: VerbSpec, tense: TenseId, person: Person): Explanatio
       notes.push(`Subjunctive built from the irregular yo form ${a.table.pres[0]}.`);
     } else if (tense === 'imp' && person === 1 && def.impTu) {
       notes.push(`Irregular tú command: ${def.impTu}. One of: di, haz, ve, pon, sal, sé, ten, ven.`);
+    } else if (regular && formOf(a.table, tense, person) && stripAccents(formOf(a.table, tense, person)!) === stripAccents(regular)) {
+      notes.push('Same letters as the regular pattern, but the stress falls on the ending, so it takes a written accent.');
     } else {
       notes.push('Irregular form; learn it on its own.');
     }

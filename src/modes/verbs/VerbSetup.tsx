@@ -3,19 +3,21 @@ import type { Screen } from '../../App';
 import { CATEGORIES } from '../../data/catalogue';
 import { PERSON_ES } from '../../engine/tenses';
 import type { Person } from '../../engine/types';
-import { newCardsToday, useStore, type Direction } from '../../store';
-import { ChipGroup, Section } from '../../ui/common';
+import { sessionContext, useStore, type Direction } from '../../store';
+import { ChipGroup, Section, Toggle } from '../../ui/common';
 import { useLang, useT } from '../../ui/i18n';
 import { TenseChips, WarningSettings } from '../../ui/PracticeOptions';
 import { buildSession, filterVerbs, queueInfo } from './cards';
 
 export function VerbSetup({ go }: { go: (s: Screen) => void }) {
-  const { settings: s, updateSettings, verbs, srs, stats } = useStore();
+  const store = useStore();
+  const { settings: s, updateSettings, verbs, srs } = store;
+  const ctx = sessionContext(store);
   const t = useT();
   const lang = useLang();
   const pool = useMemo(() => filterVerbs(verbs, s), [verbs, s]);
-  const info = useMemo(() => queueInfo(verbs, s, srs), [verbs, s, srs]);
-  const freshToday = Math.min(info.fresh, Math.max(0, s.newPerDay - newCardsToday(stats)));
+  const info = useMemo(() => queueInfo(verbs, s, srs, ctx.met, ctx.newVerbsLeft), [verbs, s, srs, store.introduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  const freshToday = Math.min(info.fresh, Math.max(0, s.newPerDay - ctx.newToday));
 
   const directions: { value: Direction; label: string; hint: string }[] = [
     { value: 'en-es', label: 'EN → ES', hint: '“we will eat” → comeremos' },
@@ -25,7 +27,7 @@ export function VerbSetup({ go }: { go: (s: Screen) => void }) {
   ];
 
   const start = (mode: 'normal' | 'extra') => {
-    const cards = buildSession(verbs, s, srs, newCardsToday(stats), mode);
+    const cards = buildSession(verbs, s, srs, ctx.newToday, mode, ctx.met, ctx.newVerbsLeft);
     if (cards.length) go({ name: 'session', cards });
   };
 
@@ -116,6 +118,8 @@ export function VerbSetup({ go }: { go: (s: Screen) => void }) {
           <Section title={t.session}>
             <NumberRow label={t.cardsPerSession} value={s.sessionLength} min={5} max={100} step={5} onChange={(n) => updateSettings({ sessionLength: n })} />
             <NumberRow label={t.newPerDay} value={s.newPerDay} min={0} max={100} step={5} onChange={(n) => updateSettings({ newPerDay: n })} />
+            <NumberRow label={t.newVerbsPerDay} value={s.newVerbsPerDay} min={0} max={30} step={1} onChange={(n) => updateSettings({ newVerbsPerDay: n })} />
+            <Toggle on={s.introLessons} onChange={(v) => updateSettings({ introLessons: v })} label={t.introLessons} hint={t.introLessonsHint} />
           </Section>
         </div>
       </div>

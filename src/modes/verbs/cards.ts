@@ -85,13 +85,19 @@ export function allSlots(verbs: VerbEntry[], s: Settings): Slot[] {
 
 export interface QueueInfo { due: number; fresh: number; total: number }
 
-export function queueInfo(verbs: VerbEntry[], s: Settings, srs: Record<string, SrsState>): QueueInfo {
+export function queueInfo(
+  verbs: VerbEntry[], s: Settings, srs: Record<string, SrsState>,
+  met: Set<string> = new Set(verbs.map((v) => v.inf)), newVerbsLeft = Infinity,
+): QueueInfo {
   const slots = allSlots(verbs, s);
   let due = 0, fresh = 0;
+  const newVerbs = new Set<string>();
   for (const x of slots) {
     const st = srs[x.srsId];
-    if (!st) fresh++;
-    else if (isDueToday(st)) due++;
+    if (!st) {
+      if (met.has(x.verb.inf)) fresh++;
+      else if (newVerbs.size < newVerbsLeft || newVerbs.has(x.verb.inf)) { newVerbs.add(x.verb.inf); fresh++; }
+    } else if (isDueToday(st)) due++;
   }
   return { due, fresh, total: slots.length };
 }
@@ -108,11 +114,17 @@ function toCard(x: Slot, s: Settings, isNew: boolean, i: number): VerbCard {
  */
 export function buildSession(
   verbs: VerbEntry[], s: Settings, srs: Record<string, SrsState>, newToday: number, mode: 'normal' | 'extra' = 'normal',
+  /** Verbs the learner has already met (introduced or practised). */
+  met: Set<string> = new Set(verbs.map((v) => v.inf)),
+  /** How many not-yet-met verbs may be introduced in this session. */
+  newVerbsLeft = Infinity,
 ): VerbCard[] {
   const slots = allSlots(verbs, s);
   const n = s.sessionLength;
   if (mode === 'extra') {
-    return shuffle(slots).slice(0, n).map((x, i) => toCard(x, s, !srs[x.srsId], i));
+    // Free practice sticks to verbs you've met once there are enough of them.
+    const pool = slots.filter((x) => met.has(x.verb.inf));
+    return shuffle(pool.length >= n ? pool : slots).slice(0, n).map((x, i) => toCard(x, s, !srs[x.srsId], i));
   }
   const due = slots.filter((x) => isDueToday(srs[x.srsId])).sort((a, b) => srs[a.srsId].due - srs[b.srsId].due);
   const picked: VerbCard[] = due.slice(0, n).map((x, i) => toCard(x, s, false, i));
@@ -125,7 +137,11 @@ export function buildSession(
     // Mix card types and tenses within each verb, keeping present tense slightly ahead.
     for (const [k, q] of byVerb) byVerb.set(k, shuffle(q).sort((a, b) => Number(b.tense === 'pres') - Number(a.tense === 'pres') || 0));
     const chosen: Slot[] = [];
-    const verbsInOrder = [...byVerb.keys()].slice(0, Math.max(3, Math.ceil(room / 2)));
+    const all = [...byVerb.keys()];
+    // New verbs (capped per day) first so they actually get introduced, then more slots of verbs already met.
+    const unmet = all.filter((v) => !met.has(v)).slice(0, Math.max(0, Math.min(newVerbsLeft, 1000)));
+    const known = all.filter((v) => met.has(v)).slice(0, Math.max(3, Math.ceil(room / 2)));
+    const verbsInOrder = [...unmet, ...known];
     while (chosen.length < room && verbsInOrder.some((v) => byVerb.get(v)!.length)) {
       for (const v of verbsInOrder) {
         const q = byVerb.get(v)!;

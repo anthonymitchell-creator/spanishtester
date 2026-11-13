@@ -21,6 +21,10 @@ export interface Settings {
   warnings: { enabled: boolean; spelling: boolean; stem: boolean; irregular: boolean };
   strictness: Strictness;
   newPerDay: number;
+  /** Max verbs introduced (with a mini-lesson) per day. */
+  newVerbsPerDay: number;
+  /** Show a mini-lesson the first time a verb appears. */
+  introLessons: boolean;
   sessionLength: number;
   ttsAuto: boolean;
   voiceURI: string | null;
@@ -42,6 +46,8 @@ export const DEFAULT_SETTINGS: Settings = {
   warnings: { enabled: true, spelling: false, stem: true, irregular: true },
   strictness: 'lenient',
   newPerDay: 20,
+  newVerbsPerDay: 5,
+  introLessons: true,
   sessionLength: 20,
   ttsAuto: false,
   voiceURI: null,
@@ -79,6 +85,8 @@ interface State {
   requests: VerbRequest[];
   customVerbs: VerbEntry[];
   verbs: VerbEntry[];
+  /** inf → day key when the verb was introduced. */
+  introduced: Record<string, string>;
 
   init(): Promise<void>;
   updateSettings(p: Partial<Settings>): void;
@@ -88,7 +96,8 @@ interface State {
   clearRequests(): void;
   addCustomVerb(v: VerbEntry): void;
   removeCustomVerb(inf: string): void;
-  replaceAll(d: { settings?: Settings; srs?: Record<string, SrsState>; stats?: Stats; requests?: VerbRequest[]; customVerbs?: VerbEntry[] }): void;
+  markIntroduced(inf: string): void;
+  replaceAll(d: { settings?: Settings; srs?: Record<string, SrsState>; stats?: Stats; requests?: VerbRequest[]; customVerbs?: VerbEntry[]; introduced?: Record<string, string> }): void;
 }
 
 const bump = (t: Record<string, Tally>, k: string, ok: boolean) => {
@@ -104,14 +113,16 @@ export const useStore = create<State>((setState, getState) => ({
   requests: [],
   customVerbs: [],
   verbs: mergeCatalogue([]),
+  introduced: {},
 
   async init() {
-    const [settings, srs, stats, requests, customVerbs] = await Promise.all([
+    const [settings, srs, stats, requests, customVerbs, introduced] = await Promise.all([
       load<Settings>('settings'),
       load<Record<string, SrsState>>('srs'),
       load<Stats>('stats'),
       load<VerbRequest[]>('requests'),
       load<VerbEntry[]>('customVerbs'),
+      load<Record<string, string>>('introduced'),
     ]);
     // Drop on-device verbs that have since been added to the bundled catalogue.
     const custom = (customVerbs ?? []).filter((v) => !isBundled(v.inf));
@@ -123,6 +134,7 @@ export const useStore = create<State>((setState, getState) => ({
       requests: requests ?? [],
       customVerbs: custom,
       verbs: mergeCatalogue(custom),
+      introduced: introduced ?? {},
     });
     if (custom.length !== (customVerbs ?? []).length) save('customVerbs', custom);
   },
@@ -177,6 +189,13 @@ export const useStore = create<State>((setState, getState) => ({
     setState({ customVerbs, verbs: mergeCatalogue(customVerbs) });
     save('customVerbs', customVerbs);
   },
+  markIntroduced(inf) {
+    if (getState().introduced[inf]) return;
+    const introduced = { ...getState().introduced, [inf]: dayKey() };
+    setState({ introduced });
+    save('introduced', introduced);
+  },
+
   removeCustomVerb(inf) {
     const customVerbs = getState().customVerbs.filter((c) => c.inf !== inf);
     setState({ customVerbs, verbs: mergeCatalogue(customVerbs) });
@@ -192,9 +211,29 @@ export const useStore = create<State>((setState, getState) => ({
       requests: d.requests ?? [],
       customVerbs,
       verbs: mergeCatalogue(customVerbs),
+      introduced: d.introduced ?? {},
     });
   },
 }));
+
+/** Verbs already met: introduced with a lesson, or practised before lessons existed. */
+export function introducedSet(introduced: Record<string, string>, srs: Record<string, SrsState>): Set<string> {
+  const s = new Set(Object.keys(introduced));
+  for (const k of Object.keys(srs)) if (k.startsWith('v:')) s.add(k.slice(2, k.indexOf('|')));
+  return s;
+}
+
+export function verbsIntroducedToday(introduced: Record<string, string>): number {
+  const d = dayKey();
+  return Object.values(introduced).filter((x) => x === d).length;
+}
+
+/** Inputs every "Start" button passes to buildSession / queueInfo. */
+export function sessionContext(st: { settings: Settings; introduced: Record<string, string>; srs: Record<string, SrsState>; stats: Stats }) {
+  const met = introducedSet(st.introduced, st.srs);
+  const newVerbsLeft = st.settings.introLessons ? Math.max(0, st.settings.newVerbsPerDay - verbsIntroducedToday(st.introduced)) : Infinity;
+  return { met, newVerbsLeft, newToday: newCardsToday(st.stats) };
+}
 
 export function newCardsToday(stats: Stats): number {
   return stats.days[dayKey()]?.newCards ?? 0;

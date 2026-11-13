@@ -78,6 +78,8 @@ export function SettingsScreen() {
           <Section title={t.dailyLimits}>
             <NumberRow label={t.cardsPerSession} value={s.sessionLength} min={5} max={100} step={5} onChange={(n) => updateSettings({ sessionLength: n })} />
             <NumberRow label={t.newPerDay} value={s.newPerDay} min={0} max={100} step={5} onChange={(n) => updateSettings({ newPerDay: n })} />
+            <NumberRow label={t.newVerbsPerDay} value={s.newVerbsPerDay} min={0} max={30} step={1} onChange={(n) => updateSettings({ newVerbsPerDay: n })} />
+            <Toggle on={s.introLessons} onChange={(v) => updateSettings({ introLessons: v })} label={t.introLessons} hint={t.introLessonsHint} />
             <Toggle on={s.includeReflexive} onChange={(v) => updateSettings({ includeReflexive: v })} label={t.includeReflexive} hint="levantarse, sentarse…" />
           </Section>
         </div>

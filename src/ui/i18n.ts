@@ -81,6 +81,23 @@ const EN = {
   importConfirm: 'Replace all progress on this device with this backup?',
   backupDownloaded: 'Backup downloaded.', backupRestored: 'Backup restored.', importFailed: (m: string) => `Import failed: ${m}`,
   everythingReset: 'Everything reset.',
+  // lessons
+  newVerbsPerDay: 'New verbs per day', introLessons: 'Introduce new verbs with a mini-lesson',
+  introLessonsHint: 'Meet the verb, see its stem and endings, then a short guided drill before its cards.',
+  newVerb: 'New verb', stem: 'stem', ending: 'ending', meetNext: 'See how it conjugates →',
+  reflexiveNote: 'Reflexive: put me / te / se / nos / se before the verb (me levanto).',
+  typeLine: (lv: string, conj: string): string =>
+    lv === 'regular' ? `Regular -${conj} verb: keep the stem, swap the endings.`
+    : lv === 'spelling' ? `Regular -${conj} verb with a small spelling change to keep the sound.`
+    : lv === 'stem' ? `-${conj} verb whose stem changes in some forms.`
+    : `Irregular -${conj} verb: some forms must be memorised.`,
+  howItConjugates: 'How it conjugates', regularEndings: 'Regular endings', colourKey: 'Grey = stem · teal = ending · coloured = breaks the pattern',
+  allRegular: 'Every form follows the regular pattern.', practiseIt: 'Practise it →',
+  pickEnding: 'Pick the ending', pickForm: 'Pick the form', nowType: 'Now type it', hint: 'Hint', next: 'Next →',
+  skipLesson: 'Skip lesson',
+  lessonDone: (v: string): string => `${v} is now in your rotation. You'll see it again soon, then less often as it sticks.`,
+  startPractising: 'Start practising →', learnThisVerb: '🎓 Learn this verb', stepOf: (a: number, b: number) => `${a} / ${b}`,
+  tryAgainLater: "We'll come back to this one.",
   footer: 'Latin American Spanish (no vosotros). Conjugations checked against Fred Jehle\'s verb database (CC BY-NC-SA).',
 };
 
@@ -157,6 +174,22 @@ const ES: Dict = {
   importConfirm: '¿Reemplazar todo el progreso de este dispositivo con esta copia?',
   backupDownloaded: 'Copia descargada.', backupRestored: 'Copia restaurada.', importFailed: (m) => `Error al importar: ${m}`,
   everythingReset: 'Todo borrado.',
+  newVerbsPerDay: 'Verbos nuevos por día', introLessons: 'Presentar los verbos nuevos con una minilección',
+  introLessonsHint: 'Conoce el verbo, su raíz y sus terminaciones, y practícalo un poco antes de sus tarjetas.',
+  newVerb: 'Verbo nuevo', stem: 'raíz', ending: 'terminación', meetNext: 'Ver cómo se conjuga →',
+  reflexiveNote: 'Reflexivo: pon me / te / se / nos / se antes del verbo (me levanto).',
+  typeLine: (lv, conj) =>
+    lv === 'regular' ? `Verbo regular en -${conj}: mantén la raíz y cambia la terminación.`
+    : lv === 'spelling' ? `Verbo regular en -${conj} con un pequeño cambio ortográfico para conservar el sonido.`
+    : lv === 'stem' ? `Verbo en -${conj} cuya raíz cambia en algunas formas.`
+    : `Verbo irregular en -${conj}: algunas formas hay que memorizarlas.`,
+  howItConjugates: 'Cómo se conjuga', regularEndings: 'Terminaciones regulares', colourKey: 'Gris = raíz · verde azulado = terminación · color = rompe el patrón',
+  allRegular: 'Todas las formas siguen el patrón regular.', practiseIt: 'Practicar →',
+  pickEnding: 'Elige la terminación', pickForm: 'Elige la forma', nowType: 'Ahora escríbelo', hint: 'Pista', next: 'Siguiente →',
+  skipLesson: 'Saltar lección',
+  lessonDone: (v) => `${v} ya está en tu repaso. Lo verás pronto y luego cada vez menos a medida que lo recuerdes.`,
+  startPractising: 'A practicar →', learnThisVerb: '🎓 Aprender este verbo', stepOf: (a, b) => `${a} / ${b}`,
+  tryAgainLater: 'Volveremos a esta.',
   footer: 'Español latinoamericano (sin vosotros). Conjugaciones verificadas con la base de datos de verbos de Fred Jehle (CC BY-NC-SA).',
 };
 

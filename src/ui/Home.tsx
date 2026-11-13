@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Screen } from '../App';
 import { MODES } from '../modes/registry';
 import { buildSession, queueInfo } from '../modes/verbs/cards';
-import { newCardsToday, streak, useStore } from '../store';
+import { sessionContext, streak, useStore } from '../store';
 import { dayKey } from '../srs/scheduler';
 import { TENSE_BY_ID } from '../engine/tenses';
 import { useLang, useT } from './i18n';
@@ -26,16 +26,18 @@ export function LangToggle() {
 }
 
 export function Home({ go }: { go: (s: Screen) => void }) {
-  const { settings, srs, stats, verbs } = useStore();
+  const store = useStore();
+  const { settings, srs, stats, verbs } = store;
+  const ctx = sessionContext(store);
   const t = useT();
   const lang = useLang();
-  const info = useMemo(() => queueInfo(verbs, settings, srs), [verbs, settings, srs]);
-  const newLeft = Math.max(0, settings.newPerDay - newCardsToday(stats));
+  const info = useMemo(() => queueInfo(verbs, settings, srs, ctx.met, ctx.newVerbsLeft), [verbs, settings, srs, store.introduced]); // eslint-disable-line react-hooks/exhaustive-deps
+  const newLeft = Math.max(0, settings.newPerDay - ctx.newToday);
   const today = stats.days[dayKey()];
   const st = streak(stats);
 
   const start = (mode: 'normal' | 'extra') => {
-    const cards = buildSession(verbs, settings, srs, newCardsToday(stats), mode);
+    const cards = buildSession(verbs, settings, srs, ctx.newToday, mode, ctx.met, ctx.newVerbsLeft);
     if (cards.length) go({ name: 'session', cards });
   };
   const nothingToDo = info.due === 0 && (newLeft === 0 || info.fresh === 0);

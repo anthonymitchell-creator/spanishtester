@@ -9,6 +9,7 @@ import { useStore, type VerbRequest } from '../store';
 import { ChipGroup, FullTable, Legend, LevelBadge, Section, SpeakButton, TenseTable } from './common';
 import { useLang, useT } from './i18n';
 import { TENSE_BY_ID } from '../engine/tenses';
+import { IntroLesson } from '../modes/verbs/IntroLesson';
 
 export function VerbsScreen() {
   const [tab, setTab] = useState<'list' | 'requests'>('list');
@@ -84,9 +85,15 @@ function Catalogue() {
 
 function VerbDetail({ verb, onClose }: { verb: VerbEntry; onClose(): void }) {
   const removeCustomVerb = useStore((s) => s.removeCustomVerb);
+  const markIntroduced = useStore((s) => s.markIntroduced);
+  const [learning, setLearning] = useState(false);
   const tb = analyze(verb).table;
   const t = useT();
   const lang = useLang();
+  if (learning) {
+    const finish = () => { markIntroduced(verb.inf); setLearning(false); };
+    return <IntroLesson verb={verb} onDone={finish} onSkip={() => setLearning(false)} />;
+  }
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -111,6 +118,7 @@ function VerbDetail({ verb, onClose }: { verb: VerbEntry; onClose(): void }) {
           {t.unverifiedNote}
         </div>
       )}
+      <button className="btn-primary w-full" onClick={() => setLearning(true)}>{t.learnThisVerb}</button>
       <Legend />
       <div className="card">
         <FullTable verb={verb} tenses={['pres', 'pret', 'impf', 'fut', 'cond', 'perf', 'plup', 'subj', 'impsubj', 'imp', 'impneg']} />

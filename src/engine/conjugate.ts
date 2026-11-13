@@ -26,19 +26,19 @@ interface Simple {
 
 interface Ctx { conj: Conj; L: Layers; zc: boolean; guir: boolean; guar: boolean; uir: boolean }
 
-const PRES: Record<Conj, string[]> = {
+export const PRES: Record<Conj, string[]> = {
   ar: ['o', 'as', 'a', 'amos', 'an'],
   er: ['o', 'es', 'e', 'emos', 'en'],
   ir: ['o', 'es', 'e', 'imos', 'en'],
 };
-const PRET_AR = ['é', 'aste', 'ó', 'amos', 'aron'];
-const PRET_ERIR = ['í', 'iste', 'ió', 'imos', 'ieron'];
-const IMPF_AR = ['aba', 'abas', 'aba', 'ábamos', 'aban'];
-const IMPF_ERIR = ['ía', 'ías', 'ía', 'íamos', 'ían'];
-const FUT = ['é', 'ás', 'á', 'emos', 'án'];
-const COND = ['ía', 'ías', 'ía', 'íamos', 'ían'];
-const SUBJ_AR = ['e', 'es', 'e', 'emos', 'en'];
-const SUBJ_ERIR = ['a', 'as', 'a', 'amos', 'an'];
+export const PRET_AR = ['é', 'aste', 'ó', 'amos', 'aron'];
+export const PRET_ERIR = ['í', 'iste', 'ió', 'imos', 'ieron'];
+export const IMPF_AR = ['aba', 'abas', 'aba', 'ábamos', 'aban'];
+export const IMPF_ERIR = ['ía', 'ías', 'ía', 'íamos', 'ían'];
+export const FUT = ['é', 'ás', 'á', 'emos', 'án'];
+export const COND = ['ía', 'ías', 'ía', 'íamos', 'ían'];
+export const SUBJ_AR = ['e', 'es', 'e', 'emos', 'en'];
+export const SUBJ_ERIR = ['a', 'as', 'a', 'amos', 'an'];
 
 export const REFLEXIVE_PRONOUNS = ['me', 'te', 'se', 'nos', 'se'];
 

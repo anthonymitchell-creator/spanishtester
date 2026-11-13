@@ -33,6 +33,10 @@ Procedure:
    - `npm test`: must pass (catalogue schema, reference conjugations, every card's displayed answer is accepted, multiple-choice sanity).
 4. Commit and push to `main` (only when the user says to). The Pages deploy takes about 1 minute; the phone picks up the new version on its next launch (service worker auto-update). Verbs the user added on the phone are dropped from on-device storage automatically once they're in the bundled catalogue.
 
+## Learning flow
+- A verb the learner hasn't met (not in `introduced` and no SRS entries) gets a mini-lesson (`src/modes/verbs/IntroLesson.tsx`) the first time one of its cards comes up: meet (stem + ending), then per enabled tense (max 3) a pattern table (`src/engine/segment.ts` splits forms into pronoun/stem/ending) and a drill (pick the ending → type the form, with hint). Capped by `newVerbsPerDay` (default 5). Typed answers have a Hint (reveals the stem; a hinted pass is graded "hard").
+- Newly added verbs (`added` date) are introduced first.
+
 ## Layout
 - `src/engine/`: pure TS, no React. `conjugate.ts` (rule engine with layered rules: naive → ortho → tags → irregular), `classify.ts` (irregularity level by comparing layers; explanations), `english.ts` (English prompts and accepted answers), `match.ts` (answer checking), `irregulars.ts`, `text.ts` (accents/stress/enclitics).
 - `src/modes/verbs/`: `cards.ts` (session building, prompts, answers, choices), `VerbSession.tsx`, `VerbSetup.tsx`.

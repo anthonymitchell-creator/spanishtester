@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { explain } from '../../engine/classify';
 import type { Verdict } from '../../engine/match';
-import { newCardsToday, useStore } from '../../store';
+import { introducedSet, sessionContext, useStore } from '../../store';
+import { segment } from '../../engine/segment';
+import { IntroLesson } from './IntroLesson';
 import type { Grade } from '../../srs/scheduler';
 import { AccentBar, LEVEL_UI, LevelBadge, SpeakButton, TenseTable } from '../../ui/common';
 import { buzz } from '../../ui/haptics';
@@ -28,8 +30,9 @@ interface Props {
 }
 
 export function VerbSession({ cards, review, onExit, onRestart }: Props) {
-  const { settings, verbs, record } = useStore();
+  const { settings, verbs, record, introduced, srs, markIntroduced } = useStore();
   const t = useT();
+  const [hinted, setHinted] = useState(false);
   const [queue, setQueue] = useState<VerbCard[]>(cards);
   const [i, setI] = useState(0);
   const [results, setResults] = useState<Result[]>([]);
@@ -59,8 +62,18 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
 
   if (done) return <Summary results={results} review={review} onExit={onExit} onRestart={onRestart} />;
 
+  // First time this verb shows up: teach it before testing it.
+  if (!review && settings.introLessons && card.isNew && !introducedSet(introduced, srs).has(card.verb.inf)) {
+    const meet = () => markIntroduced(card.verb.inf);
+    return <IntroLesson key={card.verb.inf} verb={card.verb} onDone={meet} onSkip={meet} />;
+  }
+
   const prompt = promptOf(card);
   const warn = showWarning(card, settings);
+  // Hint for typed Spanish answers: reveal the stem (e.g. "tien…").
+  // (Only when the form splits into stem + ending; otherwise the hint would give the answer away.)
+  const seg0 = lang === 'es' && card.dir === 'en-es' ? segment(card.verb, card.tense, card.person) : null;
+  const hintSeg = seg0?.end ? seg0 : null;
 
   const submitTyped = () => {
     if (pending || !value.trim()) return;
@@ -96,13 +109,15 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
     setPending(null);
     setRevealed(false);
     setValue('');
+    setHinted(false);
     setI((x) => x + 1);
   };
 
   const continueAfter = (override?: boolean) => {
     if (!pending) return;
     const pass = override ? true : pending.pass;
-    const grade: Grade = !pass ? 0 : override ? 2 : pending.verdict === 'accent' ? 1 : 2;
+    // A hint or a missing accent still passes, but the card comes back sooner (hard).
+    const grade: Grade = !pass ? 0 : override ? 2 : pending.verdict === 'accent' || hinted ? 1 : 2;
     finish(grade, pass, override ? 'correct' : pending.verdict, pending.given);
   };
 
@@ -163,10 +178,16 @@ export function VerbSession({ cards, review, onExit, onRestart }: Props) {
                 spellCheck={false}
                 enterKeyHint={pending ? 'next' : 'done'}
               />
+              {lang === 'es' && !pending && hintSeg && hinted && (
+                <div className="text-center text-xl text-slate-400" lang="es">💡 {hintSeg.pre}{hintSeg.stem}{hintSeg.end ? '…' : ''}</div>
+              )}
               {lang === 'es' && !pending && <AccentBar inputRef={inputRef} onInsert={setValue} />}
               {!pending ? (
                 <div className="flex gap-2">
                   <button type="submit" className="btn-primary flex-1" disabled={!value.trim()}>{t.check}</button>
+                  {hintSeg && !hinted && (
+                    <button type="button" className="btn-ghost" onClick={() => { setHinted(true); inputRef.current?.focus(); }}>💡 {t.hint}</button>
+                  )}
                   <button type="button" className="btn-ghost" onClick={() => setPending({ card, verdict: 'wrong', pass: false, given: '' })}>{t.dontKnow}</button>
                 </div>
               ) : (
@@ -280,7 +301,8 @@ function Feedback({ card, pending, showDetailAlways, verbs }: { card: VerbCard; 
 }
 
 function Summary({ results, review, onExit, onRestart }: { results: Result[]; review?: boolean; onExit(): void; onRestart(c: VerbCard[], review?: boolean): void }) {
-  const { settings, verbs, srs, stats } = useStore();
+  const store = useStore();
+  const { settings, verbs, srs } = store;
   const t = useT();
   const first = new Map<string, Result>();
   for (const r of results) if (!first.has(r.card.srsId)) first.set(r.card.srsId, r);
@@ -291,8 +313,9 @@ function Summary({ results, review, onExit, onRestart }: { results: Result[]; re
 
   const drill = () => onRestart(missed.map((r, k) => ({ ...r.card, key: `${r.card.srsId}#rev${k}` })), true);
   const more = () => {
-    let cards = buildSession(verbs, settings, srs, newCardsToday(stats), 'normal');
-    if (!cards.length) cards = buildSession(verbs, settings, srs, 0, 'extra');
+    const ctx = sessionContext(useStore.getState());
+    let cards = buildSession(verbs, settings, srs, ctx.newToday, 'normal', ctx.met, ctx.newVerbsLeft);
+    if (!cards.length) cards = buildSession(verbs, settings, srs, 0, 'extra', ctx.met);
     onRestart(cards);
   };
 

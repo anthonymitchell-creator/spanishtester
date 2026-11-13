@@ -2,7 +2,7 @@ import { createStore, del, entries, get, set, clear } from 'idb-keyval';
 
 const store = createStore('practica', 'kv');
 
-export const KEYS = ['settings', 'srs', 'stats', 'requests', 'customVerbs'] as const;
+export const KEYS = ['settings', 'srs', 'stats', 'requests', 'customVerbs', 'introduced'] as const;
 export type Key = (typeof KEYS)[number];
 
 export async function load<T>(key: Key): Promise<T | undefined> {
